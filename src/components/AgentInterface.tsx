@@ -16,7 +16,9 @@ import {
   VolumeX,
   Settings,
   User,
-  Loader2
+  Loader2,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/components/ui/use-toast';
@@ -33,6 +35,8 @@ interface AgentInterfaceProps {
   userName: string;
   onLogout: () => void;
 }
+
+const STAGES = ['GREETING', 'PAYMENT_SELECTION', 'NBFC_PROCESS', 'RCA_DOCS'];
 
 const AgentInterface = ({ userName, onLogout }: AgentInterfaceProps) => {
   const { toast } = useToast();
@@ -197,6 +201,66 @@ const AgentInterface = ({ userName, onLogout }: AgentInterfaceProps) => {
     onLogout();
   }, [disconnect, onLogout]);
 
+  // Handle stage navigation
+  const goToNextStage = useCallback(() => {
+    const currentIndex = STAGES.indexOf(currentStage);
+    if (currentIndex < STAGES.length - 1) {
+      const nextStage = STAGES[currentIndex + 1];
+      setCurrentStage(nextStage);
+      
+      // Add system message for manual stage change
+      const systemMessage: TranscriptMessage = {
+        id: `system-${Date.now()}`,
+        text: `Moved to: ${nextStage.replace('_', ' ').toLowerCase()}`,
+        speaker: 'system',
+        timestamp: new Date(),
+      };
+      setTranscript(prev => [...prev, systemMessage]);
+
+      // Notify backend about stage change
+      sendData({
+        type: 'manual_stage_change',
+        stage: nextStage,
+      });
+
+      toast({
+        title: "Next Stage",
+        description: `Moved to ${nextStage.replace('_', ' ')}`,
+      });
+    }
+  }, [currentStage, sendData, toast]);
+
+  const goToPreviousStage = useCallback(() => {
+    const currentIndex = STAGES.indexOf(currentStage);
+    if (currentIndex > 0) {
+      const previousStage = STAGES[currentIndex - 1];
+      setCurrentStage(previousStage);
+      
+      // Add system message for manual stage change
+      const systemMessage: TranscriptMessage = {
+        id: `system-${Date.now()}`,
+        text: `Moved back to: ${previousStage.replace('_', ' ').toLowerCase()}`,
+        speaker: 'system',
+        timestamp: new Date(),
+      };
+      setTranscript(prev => [...prev, systemMessage]);
+
+      // Notify backend about stage change
+      sendData({
+        type: 'manual_stage_change',
+        stage: previousStage,
+      });
+
+      toast({
+        title: "Previous Stage",
+        description: `Moved to ${previousStage.replace('_', ' ')}`,
+      });
+    }
+  }, [currentStage, sendData, toast]);
+
+  const canGoBack = STAGES.indexOf(currentStage) > 0;
+  const canGoForward = STAGES.indexOf(currentStage) < STAGES.length - 1;
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -283,8 +347,39 @@ const AgentInterface = ({ userName, onLogout }: AgentInterfaceProps) => {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8 space-y-8">
         {/* Progress Stepper */}
-        <section>
+        <section className="space-y-6">
           <Stepper currentStage={currentStage} />
+          
+          {/* Stage Navigation Controls */}
+          <div className="flex items-center justify-center gap-4">
+            <Button
+              variant="outline"
+              size="lg"
+              onClick={goToPreviousStage}
+              disabled={!canGoBack}
+              className="gap-2"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              Previous Stage
+            </Button>
+            
+            <div className="px-4 py-2 bg-muted rounded-lg">
+              <span className="text-sm font-medium">
+                Stage {STAGES.indexOf(currentStage) + 1} of {STAGES.length}
+              </span>
+            </div>
+            
+            <Button
+              variant="default"
+              size="lg"
+              onClick={goToNextStage}
+              disabled={!canGoForward}
+              className="gap-2"
+            >
+              Next Stage
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+          </div>
         </section>
 
         {/* Content Grid */}
