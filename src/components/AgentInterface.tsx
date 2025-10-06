@@ -7,6 +7,7 @@ import Stepper from './Stepper';
 import Transcript from './Transcript';
 import PaymentOptions from './PaymentOptions';
 import Checklist from './Checklist';
+import VoiceAgentHero from './VoiceAgentHero';
 import { 
   Mic, 
   MicOff, 
@@ -343,6 +344,13 @@ const AgentInterface = ({ userName, onLogout }: AgentInterfaceProps) => {
           </div>
         </div>
       </header>
+
+      {/* Hero Section */}
+      <VoiceAgentHero 
+        isConnected={isConnected}
+        isConnecting={isConnecting}
+        isAgentSpeaking={isAgentSpeaking}
+      />
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8 space-y-8">
